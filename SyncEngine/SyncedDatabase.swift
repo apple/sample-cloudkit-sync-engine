@@ -129,8 +129,8 @@ extension SyncedDatabase : CKSyncEngineDelegate {
         
         Logger.database.info("Returning next record change batch for context: \(context)")
         
-        let zoneIDs = context.options.zoneIDs
-        let changes = syncEngine.state.pendingRecordZoneChanges.filter { zoneIDs.contains($0.recordID.zoneID) }
+        let scope = context.options.scope
+        let changes = syncEngine.state.pendingRecordZoneChanges.filter { scope.contains($0.recordID) }
         let contacts = self.appData.contacts
         
         let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in

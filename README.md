@@ -6,8 +6,8 @@ This project demonstrates using `CKSyncEngine` to sync data in an app.
 
 ### Prerequisites
 
-* A Mac with [Xcode 15](https://developer.apple.com/xcode/) (or later) installed is required to build and test this project.
-* An iOS device running iOS 17 or later, or Mac running macOS 14 or later, is required to run this app.
+* A Mac with [Xcode 15 beta 2](https://developer.apple.com/xcode/) (or later) installed is required to build and test this project.
+* An iOS device running iOS 17 beta 2 or later, or Mac running macOS 14 beta 2 or later, is required to run this app.
 * An active [Apple Developer Program membership](https://developer.apple.com/support/compare-memberships/) is needed to create a CloudKit container and sign the app to run on a device.
 
 **Note**: `CKSyncEngine` relies on remote notifications in order to sync properly. Simulators cannot register for remote push notifications, so running this sample on a real device or Mac is required for this app to properly sync.
