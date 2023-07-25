@@ -130,7 +130,7 @@ extension SyncedDatabase : CKSyncEngineDelegate {
         Logger.database.info("Returning next record change batch for context: \(context)")
         
         let scope = context.options.scope
-        let changes = syncEngine.state.pendingRecordZoneChanges.filter { scope.contains($0.recordID) }
+        let changes = syncEngine.state.pendingRecordZoneChanges.filter { scope.contains($0) }
         let contacts = self.appData.contacts
         
         let batch = await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: changes) { recordID in
@@ -141,7 +141,7 @@ extension SyncedDatabase : CKSyncEngineDelegate {
                 return record
             } else {
                 // We might have pending changes that no longer exist in our database. We can remove those from the state.
-                syncEngine.state.remove(pendingRecordZoneChanges: [.save(recordID)])
+                syncEngine.state.remove(pendingRecordZoneChanges: [ .saveRecord(recordID) ])
                 return nil
             }
         }
@@ -238,15 +238,15 @@ extension SyncedDatabase : CKSyncEngineDelegate {
                 contact.mergeFromServerRecord(serverRecord)
                 contact.setLastKnownRecordIfNewer(serverRecord)
                 self.appData.contacts[contactID] = contact
-                newPendingRecordZoneChanges.append(.save(failedRecord.recordID))
+                newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
                 
             case .zoneNotFound:
                 // Looks like we tried to save a record in a zone that doesn't exist.
                 // Let's save that zone and retry saving the record.
                 // Also clear the last known server record if we have one, it's no longer valid.
                 let zone = CKRecordZone(zoneID: failedRecord.recordID.zoneID)
-                newPendingDatabaseChanges.append(.save(zone))
-                newPendingRecordZoneChanges.append(.save(failedRecord.recordID))
+                newPendingDatabaseChanges.append(.saveZone(zone))
+                newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
                 shouldClearServerRecord = true
                 
             case .unknownItem:
@@ -254,7 +254,7 @@ extension SyncedDatabase : CKSyncEngineDelegate {
                 // This might mean that another device deleted the record, but we still have the data for that record locally.
                 // We have the choice of either deleting the local data or re-uploading the local data.
                 // For this sample app, let's re-upload the local data.
-                newPendingRecordZoneChanges.append(.save(failedRecord.recordID))
+                newPendingRecordZoneChanges.append(.saveRecord(failedRecord.recordID))
                 shouldClearServerRecord = true
                 
             case .networkFailure, .networkUnavailable, .zoneBusy, .serviceUnavailable, .notAuthenticated, .operationCancelled:
@@ -324,11 +324,8 @@ extension SyncedDatabase : CKSyncEngineDelegate {
         }
         
         if shouldReUploadLocalData {
-            let recordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = self.appData.contacts.values.map { .save($0.recordID) }
-            let zoneIDsToSave = Set(recordZoneChanges.map { $0.recordID.zoneID })
-            let databaseChanges: [CKSyncEngine.PendingDatabaseChange] = zoneIDsToSave.map { .save(CKRecordZone(zoneID: $0)) }
-            
-            self.syncEngine.state.add(pendingDatabaseChanges: databaseChanges)
+            let recordZoneChanges: [CKSyncEngine.PendingRecordZoneChange] = self.appData.contacts.values.map { .saveRecord($0.recordID) }
+            self.syncEngine.state.add(pendingDatabaseChanges: [ .saveZone(CKRecordZone(zoneName: Contact.zoneName)) ])
             self.syncEngine.state.add(pendingRecordZoneChanges: recordZoneChanges)
         }
     }
@@ -349,7 +346,7 @@ extension SyncedDatabase {
         }
         try self.persistLocalData()
         
-        let pendingSaves: [CKSyncEngine.PendingRecordZoneChange] = contacts.map { .save($0.recordID) }
+        let pendingSaves: [CKSyncEngine.PendingRecordZoneChange] = contacts.map { .saveRecord($0.recordID) }
         self.syncEngine.state.add(pendingRecordZoneChanges: pendingSaves)
     }
     
@@ -360,7 +357,7 @@ extension SyncedDatabase {
         }
         try self.persistLocalData()
         
-        let pendingDeletions: [CKSyncEngine.PendingRecordZoneChange] = contacts.map { .delete($0.recordID) }
+        let pendingDeletions: [CKSyncEngine.PendingRecordZoneChange] = contacts.map { .deleteRecord($0.recordID) }
         self.syncEngine.state.add(pendingRecordZoneChanges: pendingDeletions)
     }
     
@@ -391,7 +388,7 @@ extension SyncedDatabase {
         
         // Our data is all in a single zone. Let's delete that zone now.
         let zoneID = CKRecordZone.ID(zoneName: Contact.zoneName)
-        self.syncEngine.state.add(pendingDatabaseChanges: [ .delete(zoneID) ])
+        self.syncEngine.state.add(pendingDatabaseChanges: [ .deleteZone(zoneID) ])
         try await self.syncEngine.sendChanges()
     }
 }
