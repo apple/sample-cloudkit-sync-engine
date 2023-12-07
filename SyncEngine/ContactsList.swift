@@ -35,25 +35,26 @@ struct ContactsList: View {
             }
         }
         .toolbar {
-            
-            Button("Delete Server Data") {
-                Task {
-                    try await self.database.deleteServerData()
+            HStack {
+                Button("Delete Server Data") {
+                    Task {
+                        try await self.database.deleteServerData()
+                    }
                 }
-            }
-            
-            Button("Delete Local Data") {
-                Task {
-                    try await self.database.deleteLocalData()
+                
+                Button("Delete Local Data") {
+                    Task {
+                        try await self.database.deleteLocalData()
+                    }
                 }
+                
+                Button(action: {
+                    self.addNewContact()
+                }, label: {
+                    Image(systemName: "plus")
+                })
+                .keyboardShortcut("N")
             }
-            
-            Button(action: {
-                self.addNewContact()
-            }, label: {
-                Image(systemName: "plus")
-            })
-            .keyboardShortcut("N")
         }
 #if os(macOS)
         .onDeleteCommand {
