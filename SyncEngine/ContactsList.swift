@@ -109,7 +109,7 @@ struct ContactView: View {
 extension Contact {
     
     // In order for the list to update properly when fetch changes from the cloud, we need to use something other than the contact ID for the list item ID.
-    var listID: String { "\(self.id)\(Self.listIDSeparator)\(self.name)" }
+    var listID: String { "\(self.id)\(Self.listIDSeparator)\(self.userModificationDate)" }
     
     static let listIDSeparator = "::"
     
